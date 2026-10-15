@@ -1,0 +1,209 @@
+{
+  "name": "araştırmasitesi",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "arastirma",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "119c6a5a-df35-4ecf-9863-06aa893844dd",
+      "name": "Webhook",
+      "webhookId": "3b5dc8f9-ebbb-4d41-b7ee-054564a243ac"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.openalex.org/works?search={{ encodeURIComponent($json.body.topic) }}&filter=has_abstract:true&per-page=5&select=id,doi,title,publication_year,abstract_inverted_index,primary_location&mailto=hfsftmakky@gmail.com",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "effd65c2-80e3-43fe-97f7-9ad5ed048006",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.first().json.results || [];\nconst wh = $('Webhook').first().json;\nconst req = wh.body || wh.query || wh || {};\n\nfunction abstractText(inv) {\n  if (!inv) return '';\n  const words = [];\n  for (const [word, positions] of Object.entries(inv)) {\n    for (const p of positions) words[p] = word;\n  }\n  return words.join(' ');\n}\n\nconst papers = results\n  .map(p => ({\n    title: p.title,\n    year: p.publication_year,\n    venue: p.primary_location?.source?.display_name || '',\n    url: p.doi || p.id,\n    abstract: abstractText(p.abstract_inverted_index)\n  }))\n  .filter(p => p.abstract && p.title);\n\nreturn [{ json: {\n  topic: req.topic,\n  audience: req.target_audience,\n  raw_sources: papers.map((p, i) =>\n    `[${i + 1}] ${p.title} (${p.year}) ${p.venue}\\nURL: ${p.url}\\n${p.abstract}`\n  ).join('\\n\\n')\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "e8e54b94-d81e-4d7e-aa77-af08384f70f3",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sen bir araştırma asistanısın. Aşağıdaki kaynak özetlerini analiz edip Türkçe bir çıktı paketi üreteceksin.\n\nKONU: {{ $json.topic }}\nHEDEF KİTLE: {{ $json.audience }}\n\nKAYNAKLAR:\n{{ $json.raw_sources }}\n\nKURALLAR:\n- Yalnızca yukarıdaki kaynaklara dayan. Kaynakta olmayan bilgiyi uydurma, emin olmadığın şeyi \"kaynaklarda belirtilmemiş\" diye yaz.\n- Her kaynak için bir makale kartı üret. title ve url alanlarını kaynaktan aynen kopyala, değiştirme.\n- Dil seviyesini hedef kitleye göre ayarla.\n- one_liner: tek cümle, en fazla 20 kelime.\n- key_points: tam 3 madde, her biri kısa.\n- memory_hook: akılda kalan kısa bir benzetme ya da hatırlatma cümlesi.\n- recall_q ve recall_a: kendini sınamak için bir soru ve kısa cevap.\n- technical_report.executive_summary en fazla 150 kelime olsun. Diğer rapor bölümleri birkaç cümle olsun.\n- visual_diagrams: tam 2 şema. Birincisi flowchart TD, ikincisi mindmap olsun.\n- Mermaid kuralları: düğüm etiketlerinde hiçbir tırnak işareti, parantez, iki nokta, virgül, noktalı virgül ya da eğik çizgi kullanma. Etiketler yalnızca harf, rakam ve boşluk içersin, en fazla 4 kelime olsun. Örnek flowchart: flowchart TD\\n  A[Konu girilir] --> B[Kaynaklar toplanir]. Mindmap kökü yalnızca harf ve boşluk içersin: root((Konu adi)). Satırları \\n ile ayır. mermaid_code içinde çift tırnak karakteri hiç bulunmasın.\n- audio_script: Sunucu ve Uzman arasında 8 ile 12 satırlık diyalog, toplam 300 ile 450 kelime. Bazı satırların başına [coşkulu], [düşünceli], [kısa duraksama] gibi etiketler koy.\n- JSON metin alanlarının içinde asla çift tırnak kullanma. Alıntı gerekirse tek tırnak kullan.\n- Metin alanlarında satır sonu bırakma, her metin tek satır olsun. Satır ayırma yalnızca mermaid_code içinde \\n ile yapılsın.\n- Son elemandan sonra virgül koyma.\n\nÇIKTI: Yalnızca geçerli JSON döndür. Giriş cümlesi, açıklama ya da Markdown ekleme. Şema:\n{\"articles\":[{\"title\":\"\",\"source\":\"\",\"year\":\"\",\"url\":\"\",\"one_liner\":\"\",\"key_points\":[\"\",\"\",\"\"],\"memory_hook\":\"\",\"recall_q\":\"\",\"recall_a\":\"\",\"tags\":[\"\"]}],\"technical_report\":{\"executive_summary\":\"\",\"problem_statement\":\"\",\"methodology\":\"\",\"findings_and_analysis\":\"\",\"future_scope_and_conclusion\":\"\"},\"visual_diagrams\":[{\"id\":\"flow\",\"title\":\"\",\"mermaid_code\":\"\"},{\"id\":\"mind\",\"title\":\"\",\"mermaid_code\":\"\"}],\"audio_script\":{\"title\":\"\",\"dialogue\":[{\"speaker\":\"Sunucu\",\"text\":\"\"},{\"speaker\":\"Uzman\",\"text\":\"\"}]}}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        672,
+        0
+      ],
+      "id": "fb4884e7-c688-4aa2-9895-c4dd023b0e62",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {
+          "maxOutputTokens": 6000,
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        608,
+        208
+      ],
+      "id": "e75b8914-30e1-41d2-925f-27a154b0eb2e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7nd5g5u3WmSli3Jl",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nlet t = String(item.text ?? item.output ?? item.response ?? '').trim();\n\nconst start = t.indexOf('{');\nif (start === -1) {\n  throw new Error('Modelden JSON gelmedi. Gelen metin: ' + t.slice(0, 300));\n}\nconst end = t.lastIndexOf('}');\nconst raw = t.slice(start, end > start ? end + 1 : t.length);\n\nfunction tryParse(s) { try { return JSON.parse(s); } catch (e) { return null; } }\n\n// Bozuk JSON'u onarır: kaçışsız tırnak, satır sonu, kesilmiş çıktı\nfunction repair(s) {\n  let out = '', inStr = false, esc = false;\n  const stack = [];\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    if (!inStr) {\n      if (c === '\"') inStr = true;\n      else if (c === '{' || c === '[') stack.push(c === '{' ? '}' : ']');\n      else if (c === '}' || c === ']') stack.pop();\n      out += c;\n      continue;\n    }\n    if (esc) { out += c; esc = false; continue; }\n    if (c === '\\\\') { out += c; esc = true; continue; }\n    if (c === '\"') {\n      let j = i + 1;\n      while (j < s.length && /\\s/.test(s[j])) j++;\n      const n = s[j];\n      if (n === undefined || n === ',' || n === '}' || n === ']' || n === ':') {\n        out += c; inStr = false;\n      } else {\n        out += '\\\\\"';\n      }\n      continue;\n    }\n    if (c === '\\n') { out += '\\\\n'; continue; }\n    if (c === '\\r') { continue; }\n    if (c === '\\t') { out += ' '; continue; }\n    out += c;\n  }\n  if (inStr) out += '\"';\n  out = out.replace(/,\\s*$/, '');\n  while (stack.length) out += stack.pop();\n  return out.replace(/,\\s*([}\\]])/g, '$1');\n}\n\nlet d = tryParse(raw);\nif (!d) d = tryParse(repair(raw));\nif (!d) {\n  let msg = '';\n  try { JSON.parse(repair(raw)); } catch (e) { msg = e.message; }\n  throw new Error('JSON onarılamadı: ' + msg + ' | Başlangıç: ' + raw.slice(0, 150));\n}\n\nconst wh = $('Webhook').first().json;\nconst req = wh.body || wh.query || wh || {};\nd.status = 'success';\nd.meta = { topic: req.topic, generated_at_timestamp: new Date().toISOString() };\nd.articles = Array.isArray(d.articles) ? d.articles : [];\nd.visual_diagrams = Array.isArray(d.visual_diagrams) ? d.visual_diagrams : [];\n\nreturn [{ json: d }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        0
+      ],
+      "id": "3f82eadd-1f99-46b4-ba70-132e28e04335",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1168,
+        0
+      ],
+      "id": "bb036ec4-b45e-4d72-992b-e43b24a22078",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a9b017e9-98f5-40b6-a3e1-288b11ab421d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9090b618bcf663656c40b95134b03bf5d4c70563695c847e49483f080f4ed077"
+  },
+  "nodeGroups": [],
+  "id": "iMhWQQtYVYMe2m4A",
+  "tags": []
+}

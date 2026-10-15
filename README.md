@@ -198,17 +198,6 @@ Yapay zeka ve dış servis kaynaklı aralıklı hatalara karşı alınan önleml
 
 ---
 
-## 👥 Görev Dağılımı
-
-| Üye | Sorumluluk |
-|---|---|
-| **Ad Soyad 1** (@hfsftmakky) | Ön yüz (HTML/CSS/JS), arayüz tasarımı |
-| **Ad Soyad 2** | n8n iş akışı, webhook, Gemini entegrasyonu |
-| **Ad Soyad 3** | Supabase veritabanı, geçmiş kayıtları |
-| **Ad Soyad 4** | Dokümantasyon, test, sunum |
-
-> Her üye kendi GitHub hesabından commit atmalıdır.
-
 ---
 
 ## 🔄 Commit Kuralları
